@@ -52,7 +52,7 @@ New-Item -Path "HKCU:\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2
 克隆到任意目录，进入后执行：
 
 ```powershell
-git clone https://github.com/<你的用户名>/AnythingToMarkdown.git
+git clone https://github.com/SymeZhao/AnythingToMarkdown.git
 cd AnythingToMarkdown
 
 # 1. 装依赖
