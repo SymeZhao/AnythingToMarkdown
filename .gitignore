@@ -2,6 +2,7 @@
 dist/
 build/
 *.spec
+vendor/
 # packaging/app.spec.template 是源文件，需保留
 !packaging/app.spec.template
 

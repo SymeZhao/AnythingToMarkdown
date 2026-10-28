@@ -32,6 +32,37 @@ $Root   = $PSScriptRoot
 $VenvPy = Join-Path $Root '.venv\Scripts\python.exe'
 $Helper = Join-Path $Root 'scripts\manage_menu.py'
 
+# 找到创建虚拟环境时用的系统 Python。
+# 刻意避开 .venv\Scripts\python.exe —— 该副本可能被安全软件降级到 Low
+# 完整性级别，连注册表都写不进去。注册动作本身也会被降权连累，所以
+# 执行 manage_menu.py 的进程也必须是系统 Python。
+function Get-BasePython {
+    param([string]$ProjectRoot)
+
+    # 1. .venv\pyvenv.cfg 里记录的 home
+    $cfg = Join-Path $ProjectRoot '.venv\pyvenv.cfg'
+    if (Test-Path $cfg) {
+        foreach ($line in Get-Content -Path $cfg -ErrorAction SilentlyContinue) {
+            if ($line -match '^\s*home\s*=\s*(.+?)\s*$') {
+                $candidate = Join-Path $Matches[1] 'python.exe'
+                if (Test-Path $candidate) { return $candidate }
+            }
+        }
+    }
+
+    # 2. PATH 里的 python / py 启动器（排除 venv 自己）
+    $c = Get-Command python -ErrorAction SilentlyContinue
+    if ($c -and $c.Source -notmatch '\.venv') { return $c.Source }
+
+    $py = Get-Command py -ErrorAction SilentlyContinue
+    if ($py) { return $py.Source }
+
+    return $null
+}
+
+$Runner = Get-BasePython -ProjectRoot $Root
+if (-not $Runner) { $Runner = $VenvPy }
+
 # 自动识别打包产物：优先目录模式，其次单文件
 $ExeSingle = Join-Path $Root 'dist\AnythingToMarkdown.exe'
 $ExeDirMode = Join-Path $Root 'dist\AnythingToMarkdown\AnythingToMarkdown.exe'
@@ -60,14 +91,14 @@ Show-Header
 
 # ---------- 查看状态 ----------
 if ($Status) {
-    & $VenvPy $Helper status
+    & $Runner $Helper status
     exit $LASTEXITCODE
 }
 
 # ---------- 移除 ----------
 if ($Uninstall) {
     Write-Host '[..] 移除右键菜单...' -ForegroundColor Cyan
-    & $VenvPy $Helper uninstall
+    & $Runner $Helper uninstall
     if ($LASTEXITCODE -eq 0) {
         Write-Host ''
         Write-Host '[OK] 右键菜单已移除' -ForegroundColor Green
@@ -92,9 +123,9 @@ if ($UsePython) {
     }
 
     Write-Host '[..] 注册方式：Python 解释器（绕过 exe 写入拦截）' -ForegroundColor Cyan
-    Write-Host "     Python: $VenvPy" -ForegroundColor Gray
+    Write-Host "     Python: $Runner（系统解释器，完整性级别不受降权影响）" -ForegroundColor Gray
     Write-Host "     脚本  : $atmPy" -ForegroundColor Gray
-    & $VenvPy $Helper install-python
+    & $Runner $Helper install-python
 
     if ($LASTEXITCODE -eq 0) {
         Write-Host ''
@@ -124,7 +155,7 @@ if (-not (Test-Path $Exe)) {
 
 $modeLabel = if ($Exe -eq $ExeDirMode) { '目录模式' } else { '单文件' }
 Write-Host "[..] 程序位置: $Exe（$modeLabel）" -ForegroundColor Cyan
-& $VenvPy $Helper install $Exe
+& $Runner $Helper install $Exe
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ''

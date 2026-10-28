@@ -1,20 +1,22 @@
-"""AnythingToMarkdown —— 把文件一键转为 Markdown。"""
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
 
-from setuptools import find_packages, setup
+[project]
+name = "anythingtomarkdown"
+version = "0.1.1"
+description = "把任何格式的文件一键转换为 Markdown（离线）"
+requires-python = ">=3.10"
+license = { text = "Other" }
+dependencies = [
+    "markitdown[docx,xlsx,xls,pptx,pdf,outlook]>=0.1.0",
+]
 
-setup(
-    name="anythingtomarkdown",
-    version="0.1.0",
-    description="把任何格式的文件一键转换为 Markdown（离线）",
-    packages=find_packages(where="src"),
-    package_dir={"": "src"},
-    python_requires=">=3.10",
-    install_requires=[
-        "markitdown[docx,xlsx,xls,pptx,pdf,outlook]>=0.1.0",
-    ],
-    entry_points={
-        "console_scripts": [
-            "atm=anythingtomarkdown.cli:main",
-        ],
-    },
-)
+[project.scripts]
+atm = "anythingtomarkdown.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

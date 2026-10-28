@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import ctypes
+import sys
 from ctypes import wintypes
 
 _INTEGRITY_NAMES = {
@@ -158,8 +159,23 @@ def parent_process() -> str:
         return f"未知（{exc}）"
 
 
+def _ensure_utf8_stdout() -> None:
+    """把 stdout/stderr 切到 UTF-8。
+
+    Windows 控制台默认 GBK，下面那句带 ⚠ 的说明会直接抛 UnicodeEncodeError。
+    本模块最常被「裸 python -c」调用（README 的排障命令就是这样），
+    没有别的地方替我们切编码，所以在这里兜一层。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+        except Exception:
+            pass
+
+
 def describe() -> list[str]:
     """返回可直接打印的环境说明行。"""
+    _ensure_utf8_stdout()
     level, name = integrity_level()
     lines = [
         f"完整性级别: {name}" + (f"（0x{level:04X}）" if level is not None else ""),

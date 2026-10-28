@@ -57,7 +57,7 @@ if (-not (Test-Path $Entry)) {
 $pyiProbe = & $VenvPy -c "import PyInstaller;print(PyInstaller.__version__)" 2>$null
 if ($LASTEXITCODE -ne 0) {
     if (Test-Path $Vendor) {
-        Write-Host '    [..] 虚拟环境中无 PyInstaller，改用 vendor 目录' -ForegroundColor Yellow
+        Write-Host '    [..] 虚拟环境中无 PyInstaller，改用 vendor 目录（setup.ps1 默认装在这里）' -ForegroundColor Yellow
     }
     else {
         Write-Host '    [XX] 未安装 PyInstaller' -ForegroundColor Red
