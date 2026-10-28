@@ -1,0 +1,67 @@
+# ---- 构建产物 ----
+dist/
+build/
+*.spec
+# packaging/app.spec.template 是源文件，需保留
+!packaging/app.spec.template
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ---- 运行时产生的目录 ----
+out/
+tests/output/
+tests/duo/
+tests/solo/
+tests/loop/
+tests/final/
+tests/exetest*/
+tests/verify-*/
+writetest-tmp/
+AnythingToMarkdown-writetest/
+
+# 样例目录里由转换生成的产物（note.md 是源样例，需保留）
+samples/demo.md
+samples/demo.docx.md
+samples/demo.xlsx.md
+samples/demo.pptx.md
+samples/demo.pdf.md
+samples/page.md
+samples/data.md
+samples/config.md
+samples/feed.md
+samples/plain.md
+
+# ---- 调试/临时目录 ----
+.build/
+.probe/
+.runtmp/
+.runplain/
+*.tmp
+*.log
+
+# ---- 编辑器 ----
+.vscode/
+.idea/
+*.swp
+*~
+
+# ---- 系统 ----
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# ---- 本地个人笔记（含机器相关的排障记录，不上传）----
+进度存档.md

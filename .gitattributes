@@ -1,0 +1,21 @@
+# 统一换行符处理
+# 源码用 LF 存储，Windows 检出时转 CRLF，避免跨平台 diff 噪音
+* text=auto eol=lf
+
+*.py    text eol=lf
+*.ps1   text eol=crlf
+*.psm1  text eol=crlf
+*.md    text eol=lf
+*.toml  text eol=lf
+*.spec  text eol=lf
+
+# 二进制文件不参与换行转换
+*.docx  binary
+*.xlsx  binary
+*.pptx  binary
+*.pdf   binary
+*.zip   binary
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.exe   binary

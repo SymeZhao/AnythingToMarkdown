@@ -1,0 +1,119 @@
+# -*- mode: python ; coding: utf-8 -*-
+# AnythingToMarkdown 打包配置
+#
+# 用法（由 package.ps1 调用）：
+#   pyinstaller AnythingToMarkdown.spec --oneder / --onedir 由本文件内 BUILD_MODE 决定
+#
+# 模式切换：修改下方 BUILD_MODE 为 'single' 或 'dir'
+
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+
+BUILD_MODE = '__BUILD_MODE__'  # 由 package.ps1 替换
+
+datas = []
+binaries = []
+
+hiddenimports = [
+    'markitdown',
+    'mammoth',
+    'openpyxl',
+    'xlrd',
+    'pptx',
+    'pdfminer',
+    'pdfminer.high_level',
+    'pdfplumber',
+    'olefile',
+    'bs4',
+    'magika',
+    'charset_normalizer',
+    'pandas',
+    'numpy',
+    'tkinter',
+    'tkinter.filedialog',
+    'tkinter.messagebox',
+    'tkinter.ttk',
+    'anythingtomarkdown.cli',
+    'anythingtomarkdown.converter',
+    'anythingtomarkdown.contextmenu',
+    'anythingtomarkdown.gui',
+]
+
+# 收集可能带有数据文件的包
+for pkg in ('markitdown', 'magika', 'pdfminer', 'pptx', 'mammoth', 'openpyxl'):
+    try:
+        datas += collect_data_files(pkg)
+    except Exception:
+        pass
+
+# 收集 markitdown 的子模块（转换器是动态加载的）
+try:
+    hiddenimports += collect_submodules('markitdown')
+except Exception:
+    pass
+
+a = Analysis(
+    [r'__ENTRY__'],
+    pathex=[r'__SRC__'],
+    binaries=binaries,
+    datas=datas,
+    hiddenimports=hiddenimports,
+    hookspath=[],
+    runtime_hooks=[],
+    excludes=[
+        # 注意：不要排除 numpy / pandas，MarkItDown 处理 xlsx 时依赖它们
+        'pytest',
+        'pandas.tests',
+        'matplotlib',
+        'IPython',
+        'notebook',
+        'jupyter',
+        'scipy',
+        'tkinter.test',
+    ],
+    noarchive=False,
+)
+
+pyz = PYZ(a.pure)
+
+if BUILD_MODE == 'dir':
+    # 目录模式：运行时不需要解压到 %TEMP%，启动更快
+    exe = EXE(
+        pyz,
+        a.scripts,
+        [],
+        exclude_binaries=True,
+        name='AnythingToMarkdown',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=False,
+        console=True,
+        disable_windowed_traceback=False,
+        icon=None,
+    )
+
+    coll = COLLECT(
+        exe,
+        a.binaries,
+        a.datas,
+        strip=False,
+        upx=False,
+        name='AnythingToMarkdown',
+    )
+else:
+    # 单文件模式：全部封进一个 exe，便于拷贝
+    exe = EXE(
+        pyz,
+        a.scripts,
+        a.binaries,
+        a.datas,
+        [],
+        name='AnythingToMarkdown',
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=False,
+        console=True,
+        disable_windowed_traceback=False,
+        icon=None,
+    )
