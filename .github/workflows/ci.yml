@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  selfcheck:
+    name: 自检（Windows）
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: 安装依赖
+        shell: powershell
+        run: .\setup.ps1
+
+      # 这一步验的是 README 承诺的约定，不是功能本身：
+      # 脚本 BOM/CRLF、pyproject.toml 合法性、-UsePython 能否真的注册、
+      # 样例能否转出非空 Markdown、工作区是否被污染。
+      - name: 运行自检
+        shell: powershell
+        run: .\scripts\selfcheck.ps1 -StrictGit

@@ -153,6 +153,34 @@ cd AnythingToMarkdown
 .\.venv\Scripts\python.exe scripts\selftest.py
 ```
 
+### 一键自检（推荐）
+
+上面三条验的是「功能能不能用」，下面这条验的是**「README 里的承诺还成不成立」**：
+
+```powershell
+.\scripts\selfcheck.ps1
+```
+
+它跑 27 项断言，覆盖的都是曾经真出过事、但肉眼看不出来的地方：
+
+| 检查项 | 守的是什么 |
+|---|---|
+| `.ps1` 带 BOM + CRLF + 语法可解析 | 没有 BOM 时 PowerShell 5.1 按 GBK 解析，中文全乱且报假语法错 |
+| `pyproject.toml` 是合法 PEP 621 | 曾经这里放的是 `setup.py` 的 `setup()` 代码，`pip install -e .` 必失败 |
+| `install.ps1 -UsePython` 真的能注册 | 进程被降权到 Low 时只报 `WinError 5`，读代码看不出来 |
+| 9 个样例都能转出非空 Markdown | 抓转换退化，并断言 docx 的中文正文未乱码 |
+| 工作区干净 | 抓行尾漂移和生成物污染 |
+
+参数：
+
+```powershell
+.\scripts\selfcheck.ps1 -SkipMenu      # 不碰注册表
+.\scripts\selfcheck.ps1 -SkipConvert   # 不跑转换（没装依赖时）
+.\scripts\selfcheck.ps1 -StrictGit     # 工作区不干净也算失败（CI 用）
+```
+
+CI 在 `.github/workflows/ci.yml` 里跑同一套断言，Windows runner，`push`/`PR` 都触发。
+
 ## 项目结构
 
 ```
