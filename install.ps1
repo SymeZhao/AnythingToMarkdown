@@ -36,26 +36,58 @@ $Helper = Join-Path $Root 'scripts\manage_menu.py'
 # 刻意避开 .venv\Scripts\python.exe —— 该副本可能被安全软件降级到 Low
 # 完整性级别，连注册表都写不进去。注册动作本身也会被降权连累，所以
 # 执行 manage_menu.py 的进程也必须是系统 Python。
+function Test-UsablePython {
+    param([string]$Path)
+
+    if (-not $Path) { return $false }
+    if ($Path -match '\.venv') { return $false }
+
+    # Windows 应用商店的提示占位符：0 字节的重解析点，
+    # 存在但运行时报「系统找不到指定的路径」，必须排除。
+    if ($Path -match '\\WindowsApps\\') { return $false }
+
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+    try {
+        $size = (Get-Item -LiteralPath $Path -Force).Length
+        if ($size -lt 1024) { return $false }
+    }
+    catch { return $false }
+
+    return $true
+}
+
 function Get-BasePython {
     param([string]$ProjectRoot)
 
-    # 1. .venv\pyvenv.cfg 里记录的 home
+    # 1. .venv\pyvenv.cfg 里记录的 home（最可靠）
     $cfg = Join-Path $ProjectRoot '.venv\pyvenv.cfg'
     if (Test-Path $cfg) {
         foreach ($line in Get-Content -Path $cfg -ErrorAction SilentlyContinue) {
             if ($line -match '^\s*home\s*=\s*(.+?)\s*$') {
                 $candidate = Join-Path $Matches[1] 'python.exe'
-                if (Test-Path $candidate) { return $candidate }
+                if (Test-UsablePython $candidate) { return $candidate }
             }
         }
     }
 
-    # 2. PATH 里的 python / py 启动器（排除 venv 自己）
+    # 2. PATH 里的 python（排除 venv 副本与商店占位符）
     $c = Get-Command python -ErrorAction SilentlyContinue
-    if ($c -and $c.Source -notmatch '\.venv') { return $c.Source }
+    if ($c -and (Test-UsablePython $c.Source)) { return $c.Source }
 
+    # 3. py 启动器，它本身可用时优先于可疑的 python
     $py = Get-Command py -ErrorAction SilentlyContinue
-    if ($py) { return $py.Source }
+    if ($py -and (Test-UsablePython $py.Source)) { return $py.Source }
+
+    # 4. 常见安装位置兜底
+    foreach ($guess in @(
+        'D:\Python\python.exe',
+        "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+        'C:\Python313\python.exe',
+        'C:\Python312\python.exe'
+    )) {
+        if (Test-UsablePython $guess) { return $guess }
+    }
 
     return $null
 }

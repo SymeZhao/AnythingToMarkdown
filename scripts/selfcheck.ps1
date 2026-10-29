@@ -76,6 +76,25 @@ function Assert-True {
 # 找出创建虚拟环境时用的系统 Python。
 # 不能用 .venv\Scripts\python.exe —— 那个副本可能被降权到 Low 完整性级别，
 # 连输出文件都写不了。这里只做探测，不修改任何东西。
+function Test-UsablePython {
+    param([string]$Path)
+
+    if (-not $Path) { return $false }
+    if ($Path -match '\.venv') { return $false }
+
+    # Windows 应用商店的提示占位符：0 字节的重解析点，
+    # 存在但运行时报「系统找不到指定的路径」，必须排除。
+    if ($Path -match '\\WindowsApps\\') { return $false }
+
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+    try {
+        if ((Get-Item -LiteralPath $Path -Force).Length -lt 1024) { return $false }
+    }
+    catch { return $false }
+
+    return $true
+}
+
 function Get-BasePython {
     param([string]$ProjectRoot)
 
@@ -84,16 +103,26 @@ function Get-BasePython {
         foreach ($line in Get-Content -Path $cfg -ErrorAction SilentlyContinue) {
             if ($line -match '^\s*home\s*=\s*(.+?)\s*$') {
                 $candidate = Join-Path $Matches[1] 'python.exe'
-                if (Test-Path $candidate) { return $candidate }
+                if (Test-UsablePython $candidate) { return $candidate }
             }
         }
     }
 
     $c = Get-Command python -ErrorAction SilentlyContinue
-    if ($c -and $c.Source -notmatch '\.venv') { return $c.Source }
+    if ($c -and (Test-UsablePython $c.Source)) { return $c.Source }
 
     $py = Get-Command py -ErrorAction SilentlyContinue
-    if ($py) { return $py.Source }
+    if ($py -and (Test-UsablePython $py.Source)) { return $py.Source }
+
+    foreach ($guess in @(
+        'D:\Python\python.exe',
+        "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe",
+        "$env:LOCALAPPDATA\Programs\Python\Python312\python.exe",
+        'C:\Python313\python.exe',
+        'C:\Python312\python.exe'
+    )) {
+        if (Test-UsablePython $guess) { return $guess }
+    }
 
     return $null
 }
@@ -250,6 +279,11 @@ Write-Head '5. 工作区状态'
 
 if (-not (Test-Path (Join-Path $Root '.git'))) {
     Write-Note '不是 git 仓库，跳过'
+}
+elseif (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    # 没装 git 的机器（或 git 不在 PATH）不应让自检失败，
+    # 这项只是锦上添花的工作区卫生检查。
+    Write-Note '未找到 git 命令，跳过工作区检查'
 }
 else {
     $dirty = @(& git -C $Root status --porcelain 2>&1 | Where-Object { $_ -and $_.Trim() })
